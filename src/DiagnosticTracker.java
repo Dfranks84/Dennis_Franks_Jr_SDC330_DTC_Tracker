@@ -1,13 +1,13 @@
 
 /************************************************************
  * Name: Dennis Franks Jr.
- * Date: October 24, 2026
- * Assignment: SDC330 Week 3 Course Project -
- * Class Implementation
+ * Date: October 31, 2026
+ * Assignment: SDC330 Week 4 Course Project -
+ * Database Implementation
  *
  * Description: Manages vehicles and diagnostic records,
- * implements the Searchable interface, and provides
- * a terminal menu for user interaction.
+ * implements Searchable, and provides the terminal menu
+ * with SQLite database support.
  ************************************************************/
 
 import java.util.ArrayList;
@@ -24,17 +24,33 @@ public class DiagnosticTracker implements Searchable {
         vehicles = new ArrayList<>();
         databaseManager = db;
         scanner = new Scanner(System.in);
+        loadVehicles();
+    }
+
+    private void loadVehicles() {
+        vehicles.clear();
+        vehicles.addAll(databaseManager.getAllVehicles());
+
+        for (Vehicle vehicle : vehicles) {
+            for (TroubleCodeRecord record :
+                    databaseManager.getRecordsByVehicle(
+                            vehicle.getVehicleId())) {
+                vehicle.addRecord(record);
+            }
+        }
     }
 
     public void addVehicle(Vehicle vehicle) {
-        vehicles.add(vehicle);
+        databaseManager.saveVehicle(vehicle);
+        loadVehicles();
     }
 
     public void addRecord(int vehicleId, TroubleCodeRecord record) {
         Vehicle vehicle = findVehicle(vehicleId);
 
         if (vehicle != null) {
-            vehicle.addRecord(record);
+            databaseManager.saveRecord(record);
+            loadVehicles();
         }
     }
 
@@ -62,47 +78,24 @@ public class DiagnosticTracker implements Searchable {
     public List<DiagnosticRecord> searchRecords(String query) {
         List<DiagnosticRecord> results = new ArrayList<>();
 
-        for (Vehicle vehicle : vehicles) {
-            for (DiagnosticRecord record : vehicle.getRecords()) {
-                TroubleCodeRecord troubleRecord =
-                        (TroubleCodeRecord) record;
-
-                if (troubleRecord.getTroubleCode()
-                        .toLowerCase().contains(query.toLowerCase())
-                        || troubleRecord.getCodeDescription()
-                        .toLowerCase().contains(query.toLowerCase())) {
-
-                    results.add(record);
-                }
-            }
+        for (TroubleCodeRecord record :
+                databaseManager.findRecords(query)) {
+            results.add(record);
         }
 
         return results;
     }
 
     public void updateRecord(TroubleCodeRecord record) {
-        TroubleCodeRecord existing = findRecord(record.getRecordId());
-
-        if (existing != null) {
-            existing.setTroubleCode(record.getTroubleCode());
-            existing.setCodeDescription(record.getCodeDescription());
-            existing.setSymptoms(record.getSymptoms());
-            existing.setPossibleCauses(record.getPossibleCauses());
-            existing.setTestResults(record.getTestResults());
-            existing.setResolutionNotes(record.getResolutionNotes());
-            existing.setDateRecorded(record.getDateRecorded());
+        if (findRecord(record.getRecordId()) != null) {
+            databaseManager.updateRecord(record);
+            loadVehicles();
         }
     }
 
     public void deleteRecord(int recordId) {
-        for (Vehicle vehicle : vehicles) {
-            for (int i = 0; i < vehicle.getRecords().size(); i++) {
-                if (vehicle.getRecords().get(i).getRecordId() == recordId) {
-                    vehicle.getRecords().remove(i);
-                    return;
-                }
-            }
-        }
+        databaseManager.deleteRecord(recordId);
+        loadVehicles();
     }
 
     private String readText(String message) {
@@ -178,6 +171,8 @@ public class DiagnosticTracker implements Searchable {
     private void viewRecords() {
         System.out.println("\n--- Vehicle Diagnostic History ---");
 
+        loadVehicles();
+
         if (vehicles.isEmpty()) {
             System.out.println("No vehicles have been added.");
             return;
@@ -197,7 +192,8 @@ public class DiagnosticTracker implements Searchable {
     }
 
     private void searchMenu() {
-        String query = readText("\nEnter trouble code or description: ");
+        String query = readText(
+                "\nEnter trouble code or description: ");
 
         List<DiagnosticRecord> results = searchRecords(query);
 
