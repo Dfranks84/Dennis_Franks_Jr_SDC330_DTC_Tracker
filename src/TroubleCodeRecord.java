@@ -1,15 +1,20 @@
 
 /************************************************************
  * Name: Dennis Franks Jr.
- * Date: October 24, 2026
- * Assignment: SDC330 Week 3 Course Project -
- * Class Implementation
+ * Date: November 7, 2026
+ * Assignment: SDC330 Week 5 Course Project -
+ * Final Implementation
  *
  * Description: Concrete diagnostic record containing
  * a trouble code, description, and troubleshooting details.
+ * Implements the Searchable interface.
  ************************************************************/
 
-public class TroubleCodeRecord extends DiagnosticRecord {
+import java.util.List;
+import java.util.ArrayList;
+
+public class TroubleCodeRecord extends DiagnosticRecord
+        implements Searchable {
 
     private String troubleCode;
     private String codeDescription;
@@ -41,6 +46,22 @@ public class TroubleCodeRecord extends DiagnosticRecord {
 
     public void setCodeDescription(String codeDescription) {
         this.codeDescription = codeDescription;
+    }
+
+    @Override
+    public List<DiagnosticRecord> searchRecords(String query) {
+        List<DiagnosticRecord> results = new ArrayList<>();
+
+        if (query != null) {
+            String searchText = query.toLowerCase();
+
+            if (troubleCode.toLowerCase().contains(searchText)
+                    || codeDescription.toLowerCase().contains(searchText)) {
+                results.add(this);
+            }
+        }
+
+        return results;
     }
 
     @Override
